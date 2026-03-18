@@ -1,30 +1,40 @@
 import requests
 import json
 import time
+from dotenv import load_dotenv
+import os
 
-API_KEYS = [
-    "eb155a0cc4f88ad48a67863c3d1db08b0fa46b6336f22810f5694f20e790c90eea481d7f66047e31",
-    "c6ec97f1658fa3dfb28231125406bc183b7d6d24f1e0c24e3a49b43ccf515aec0812a71f462dd947",
-]
+load_dotenv()
+API_KEYS = []
+i = 1
+while True:
+    key = os.getenv(f"API_KEY_{i}")
+    if key is None:
+        break
+    API_KEYS.append(key)
+    i += 1
+
+print("Clés chargées :", len(API_KEYS))
+    
 github_urls = [
+    "https://raw.githubusercontent.com/romainmarcoux/malicious-outgoing-ip/main/full-outgoing-ip-ab.txt",
     "https://raw.githubusercontent.com/romainmarcoux/malicious-outgoing-ip/main/full-outgoing-ip-40k.txt",
     "https://raw.githubusercontent.com/romainmarcoux/malicious-outgoing-ip/main/full-outgoing-ip-aa.txt",
-    "https://raw.githubusercontent.com/romainmarcoux/malicious-outgoing-ip/main/full-outgoing-ip-ab.txt"
 ]
-OUTPUT_FILE = "dataset_malicious_ips.json"
+OUTPUT_FILE = "test.json"
 category_map = {
-    3: "phishing",
-    4: "ddos",
-    5: "ftp_bruteforce",
-    9: "tor",
-    14: "port_scan",
-    15: "hacking",
-    18: "bruteforce",
-    19: "malware",
-    20: "malware",
-    22: "ssh_attack",
-    23: "spam",      
-    24: "ransomware" 
+    3:  "phishing",        
+    4:  "ddos",             
+    5:  "bruteforce",      
+    9:  "proxy",           
+    10: "spam",            
+    14: "port_scan",      
+    16: "sql_injection",   
+    17: "spoofing",       
+    19: "malware",        
+    20: "exploited_host",   
+    21: "web_app_attack",   
+    24: "ransomware",
 }
 def check_ip(ip,current_key_index=0):
     url = "https://api.abuseipdb.com/api/v2/check"
@@ -47,8 +57,7 @@ def check_ip(ip,current_key_index=0):
             if response.status_code == 429:
                 print(f"Limite API pour clé {key_index} atteinte, changement de clé")
                 time.sleep(1)
-                continue  # recommence la boucle avec la clé suivante
-
+                continue 
             # Si autre erreur HTTP
             if response.status_code != 200:
                 print(f"Erreur HTTP {response.status_code} pour IP {ip}")
@@ -82,7 +91,7 @@ def check_ip(ip,current_key_index=0):
 
     # Si toutes les API Keys sont épuisées
     print("Toutes les API Keys sont épuisées ou erreur persistante pour cette IP :", ip)
-    return None
+    return None, key_index
 
 def main():
     results = []
@@ -105,8 +114,8 @@ def main():
                      malicious_count += 1
                      print(f"IP malveillante n°{malicious_count} : {ip}")
                  time.sleep(1) 
-                 if malicious_count >= 10:
-                     print("Limite de 10 IP malveillantes atteinte !")
+                 if malicious_count >= 500:
+                     print("Limite de 500 IP malveillantes atteinte !")
                      with open(OUTPUT_FILE, "w") as f:
                          json.dump(results, f, indent=4)
                      return 
